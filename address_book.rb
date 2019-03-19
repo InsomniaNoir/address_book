@@ -1,11 +1,99 @@
 require "./contact.rb"
+require "yaml"
 
 class AddressBook
   attr_reader :contacts
 
   def initialize
     @contacts = []
+    open()
   end
+
+  def open
+    File.open("contacts.yml", "w") do |file|
+      file.write(contacts.to_yaml)
+    end
+  end
+
+  def save
+    if File.exists?("conacts.yml")
+      @contacts = YAML.load_file("conatacts.yml")
+    end
+  end
+
+  def run
+    loop do
+      puts "Address Book"
+      puts "a: Add a contact"
+      puts "e: Exit"
+      puts "p: Print Address Book"
+      puts "s: Search for a contact"
+      print "Enter your choice:"
+      input = gets.chomp.downcase
+      case input
+      when 'a'
+        add_contact
+      when 'p'
+          print_contact_list
+      when 'e'
+        save()
+        break
+      end
+    end
+  end
+
+  def add_contact
+    contact = Contact.new
+    print "First name: "
+    contact.first_name = gets.chomp
+    print "Middle name: "
+    contact.middle_name = gets.chomp
+    print "Last name: "
+    contact.last_name = gets.chomp
+
+  loop do
+    puts "Add phone number or address? "
+    puts "p: Add phone number"
+    puts "a: Add address"
+    puts "(Any other key to go back)"
+    response = gets.chomp.downcase
+    case response
+    when 'p'
+      phone = PhoneNumber.new
+      print "Phone number kind (Home, Work, etc): "
+      phone.kind = gets.chomp
+      print "Number: "
+      phone.number = gets.chomp
+      contact.phone_numbers.push(phone)
+    when 'a'
+      address = Address.new
+      print "Address Kind (Home, Work, etc): "
+      address.kind = gets.chomp
+      print "Address line 1: "
+      address.street_1 = gets.chomp
+      print "Address line 2: "
+      address.street_2 = gets.chomp
+      print "City: "
+      address.city = gets.chomp
+      print "State: "
+      address.state = gets.chomp
+      print "Postal Code: "
+      address.postal_code = gets.chomp
+      contact.addresses.push(address)
+      when 's'
+        print "Search term: "
+        search = gets.chomp
+        find_by_name(search)
+        find_by_phone_number(search)
+        find_by_address(search)
+      else
+        print "\n"
+      break
+    end
+  end
+
+  contacts.push(contact)
+end
 
   def print_contact_list
     puts "Contact List:"
@@ -19,40 +107,48 @@ class AddressBook
     search = name.downcase
     contacts.each do |contact|
       puts contact.to_s('last_first')
-        if contact.first_name.downcase.include?(search)
+      if contact.first_name.downcase.include?(search) ||
+          contact.last_name.downcase.include?(search)
           results.push(contact)
+      end
+    end
+    print_results("Name search results: #{search}")
+  end
+
+  def find_by_phone_number(number)
+    results = []
+    search = number.gsub("-","")
+      contacts.each do |phone_number|
+      if phone_number.number.gsub("-","").include?(search)
+        results.push(contact)
+      end
+    end
+  end
+
+  def find_by_address(query)
+    results = []
+    search = query.downcase
+    contacts.each do |contact|
+      contact.addresses.each do |address|
+        if address.to_s('long').downcase.include?(search)
+          results.push(contact) unless results.include?(contact)
         end
       end
-    puts "Name search results #{name}"
+    end
+    print_results("Address search results #{search}", results)
+  end
+
+  def print_results (search, results)
+    puts search
     results.each do |contact|
       puts contact.to_s('full_name')
       contact.print_phone_numbers
       contact.print_addresses
+      puts "\n"
     end
   end
 
 end
 
 address_book = AddressBook.new
-
-bob = Contact.new
-bob.first_name = "Bob"
-bob.last_name = "Jones"
-bob.add_phone_number("Home", "555-555-5555")
-bob.add_phone_number("Work", "777-777-7777")
-bob.add_addresses("Home", "123 Fourth St", "Apt 207", "Omaha", "NE", "68114")
-
-joe = Contact.new
-joe.first_name = "Joe"
-joe.last_name = "Blow"
-joe.add_phone_number("Home", "111-111-1111")
-joe.add_phone_number("Work", "222-222-2222")
-joe.add_addresses("Home", "111 Second St", "Apt 111", "Beverly Hills", "CA", "90210")
-
-address_book.contacts.push(bob)
-address_book.contacts.push(joe)
-
-
-# address_book.print_contact_list
-
-address_book.find_by_name("o")
+address_book.run
